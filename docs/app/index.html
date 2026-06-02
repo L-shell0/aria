@@ -674,7 +674,7 @@
       </div>
       <div id="chat-output"></div>
       <div id="chat-input-line">
-        <textarea id="chat-input" placeholder="mensaje... (Cmd+Enter para enviar)" rows="1"></textarea>
+        <textarea id="chat-input" data-i18n-placeholder="chat.input" placeholder="mensaje o /comando — /help para empezar" rows="1"></textarea>
         <button id="chat-send" type="button">&rarr; enviar</button>
       </div>
     </section>
@@ -789,14 +789,16 @@ const I18N = {
   es: {
     'header.home': 'inicio',
     'header.logout': 'salir',
-    'header.subtitle': 'generación de imagen · inferencia llm · servicios de oca',
+    'header.subtitle': 'inferencia llm · imagen vía /img · servicios de oca',
     'chat.auto': 'SERVIDOR · AUTO',
+    'chat.input': 'mensaje o /comando — /help para empezar',
   },
   en: {
     'header.home': 'home',
     'header.logout': 'logout',
-    'header.subtitle': 'image generation · llm inference · servicios de oca',
+    'header.subtitle': 'llm inference · image via /img · servicios de oca',
     'chat.auto': 'SERVER · AUTO',
+    'chat.input': 'message or /command — /help to start',
   }
 };
 
@@ -1657,9 +1659,236 @@ setInterval(async () => {
     localStorage.setItem(STORAGE_MODEL, elModel.value);
   });
 
+  // ═══════════════════════════════════════════════════
+  // SLASH COMMANDS — alean-style chassis. Composer parses leading "/".
+  // ═══════════════════════════════════════════════════
+  const ImgParams = { recipe: null, seed: -1, steps: 30, negative: '' };
+
+  function authHdr() {
+    const t = sessionStorage.getItem('oca_token');
+    return t ? { 'Authorization': `Bearer ${t}` } : {};
+  }
+
+  function appendSystemMsg(text) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg system';
+    const tag = document.createElement('span');
+    tag.className = 'role-tag';
+    tag.textContent = 'system';
+    const body = document.createElement('span');
+    body.textContent = text;
+    div.appendChild(tag);
+    div.appendChild(body);
+    elOutput.appendChild(div);
+    elOutput.scrollTop = elOutput.scrollHeight;
+    return body;
+  }
+
+  async function fireImgFromChat(prompt) {
+    prompt = (prompt || '').trim();
+    if (!prompt) return appendSystemMsg(Lang.current === 'es' ? 'Uso: /img <descripción>' : 'Usage: /img <description>');
+    const body = {
+      model: IMG_MODEL_DEFAULT,
+      prompt,
+      steps: ImgParams.steps,
+      seed: ImgParams.seed >= 0 ? ImgParams.seed : null,
+    };
+    if (ImgParams.negative) body.negative = ImgParams.negative;
+    if (ImgParams.recipe)   body.recipe   = ImgParams.recipe;
+
+    const verb = Lang.current === 'es' ? 'generando' : 'generating';
+    const statusEl = appendSystemMsg(`◇ ${verb}: ${prompt.slice(0, 80)}${prompt.length > 80 ? '…' : ''}`);
+    try {
+      let r = await fetch(SAR1A_URL + '/img/v1/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
+        body: JSON.stringify(body),
+      });
+      if (r.status === 401) {
+        const ok = await refreshSession().catch(() => false);
+        if (ok) r = await fetch(SAR1A_URL + '/img/v1/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
+          body: JSON.stringify(body),
+        });
+      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const job = await r.json();
+      pollImgInChat(job.job_id, statusEl, prompt, body);
+    } catch (e) {
+      statusEl.textContent = '✗ ' + e.message;
+    }
+  }
+
+  async function pollImgInChat(jobId, statusEl, prompt, body) {
+    let attempts = 0;
+    while (attempts++ < 240) {
+      await new Promise(res => setTimeout(res, 4000));
+      try {
+        let r = await fetch(SAR1A_URL + `/img/v1/jobs/${jobId}`, { headers: authHdr() });
+        if (r.status === 401) {
+          const ok = await refreshSession().catch(() => false);
+          if (ok) r = await fetch(SAR1A_URL + `/img/v1/jobs/${jobId}`, { headers: authHdr() });
+        }
+        if (!r.ok) continue;
+        const job = await r.json();
+        statusEl.textContent = `◇ ${job.status}: ${prompt.slice(0, 80)}`;
+        if (job.status === 'done' && job.images && job.images.length) {
+          for (const fname of job.images) {
+            const ir = await fetch(SAR1A_URL + `/img/outputs/${fname}`, { headers: authHdr() });
+            if (!ir.ok) continue;
+            const blob = await ir.blob();
+            renderImgInChat(blob, prompt, body, jobId, fname);
+          }
+          statusEl.parentElement && statusEl.parentElement.remove();
+          return;
+        }
+        if (job.status === 'failed') {
+          statusEl.textContent = '✗ ' + (job.error || (Lang.current === 'es' ? 'falló' : 'failed'));
+          return;
+        }
+      } catch (_) {}
+    }
+    statusEl.textContent = '✗ timeout';
+  }
+
+  function renderImgInChat(blob, prompt, body, jobId, fname) {
+    const url = URL.createObjectURL(blob);
+    const div = document.createElement('div');
+    div.className = 'chat-msg assistant img';
+    const tag = document.createElement('span');
+    tag.className = 'role-tag';
+    tag.textContent = 'aria · img';
+    const img = document.createElement('img');
+    img.className = 'inline-img';
+    img.src = url; img.alt = prompt;
+    const hint = document.createElement('div');
+    hint.className = 'msg-hint';
+    const seedStr = (body.seed == null) ? 'random' : body.seed;
+    hint.textContent = `⊙ ${body.model} · ⋮ ${body.steps} · ⚄ ${seedStr}${body.recipe ? ' · ★ ' + body.recipe : ''}`;
+    div.appendChild(tag); div.appendChild(img); div.appendChild(hint);
+    elOutput.appendChild(div);
+    elOutput.scrollTop = elOutput.scrollHeight;
+    if (window.ImgStore) {
+      window.ImgStore.put({
+        id: jobId, ts: Date.now(),
+        prompt, negative: body.negative || '',
+        model: body.model, recipe: body.recipe || null,
+        hostLabel: 'sar1a', hostUrl: SAR1A_URL,
+        steps: body.steps, seed: body.seed,
+        started_at: Date.now(), finished_at: Date.now(),
+        images: [{ filename: fname || 'inline.jpg', blob, mimeType: blob.type, byte_size: blob.size }],
+      }).catch(() => {});
+    }
+  }
+
+  function showHelp() {
+    const es = Lang.current === 'es';
+    const lines = es ? [
+      '── COMANDOS ──────────────────────────',
+      '/img <prompt>      generar imagen inline',
+      '/draw <prompt>     alias de /img',
+      '/seed <n|random>   semilla para /img',
+      '/steps <1-100>     pasos de difusión',
+      '/negative <texto>  prompt negativo',
+      '/clear             borrar chat',
+      '/theme <auto|dark|light|cycling>',
+      '/lang [es|en]      cambiar idioma',
+      '/who               sesión + nivel',
+      '/help              esta lista',
+      '──────────────────────────────────────',
+    ] : [
+      '── COMMANDS ──────────────────────────',
+      '/img <prompt>      generate inline image',
+      '/draw <prompt>     alias for /img',
+      '/seed <n|random>   seed for /img',
+      '/steps <1-100>     diffusion steps',
+      '/negative <text>   negative prompt',
+      '/clear             clear chat',
+      '/theme <auto|dark|light|cycling>',
+      '/lang [es|en]      switch language',
+      '/who               session + tier',
+      '/help              this list',
+      '──────────────────────────────────────',
+    ];
+    appendSystemMsg(lines.join('\n'));
+  }
+
+  const COMMANDS = {
+    help:  ()    => showHelp(),
+    img:   (a)   => fireImgFromChat(a),
+    draw:  (a)   => fireImgFromChat(a),
+    clear: ()    => {
+      if (!confirm(Lang.current === 'es' ? '¿Borrar chat?' : 'Clear chat?')) return;
+      elOutput.innerHTML = ''; history.length = 1;
+      if (window.ChatUserStore) window.ChatUserStore.clear();
+      if (window.ChatLLMStore) window.ChatLLMStore.clear();
+    },
+    theme: (a)   => {
+      if (typeof setMode === 'function' && ['auto','dark','light','cycling'].includes(a)) setMode(a);
+      else appendSystemMsg('Uso: /theme [auto|dark|light|cycling]');
+    },
+    lang:  (a)   => {
+      if (a === 'es' || a === 'en') Lang.setLanguage(a);
+      else if (!a) Lang.toggle();
+      else appendSystemMsg('Uso: /lang [es|en]');
+    },
+    seed:  (a)   => {
+      if (a === 'random' || a === '-1' || a === '') { ImgParams.seed = -1; appendSystemMsg('seed: random'); }
+      else if (/^\d+$/.test(a)) { ImgParams.seed = parseInt(a); appendSystemMsg('seed: ' + a); }
+      else appendSystemMsg('Uso: /seed <n|random>');
+    },
+    steps: (a)   => {
+      const n = parseInt(a);
+      if (n >= 1 && n <= 100) { ImgParams.steps = n; appendSystemMsg('steps: ' + n); }
+      else appendSystemMsg('Uso: /steps <1-100>');
+    },
+    negative: (a) => {
+      ImgParams.negative = a || '';
+      appendSystemMsg(a ? ('negative: ' + a) : (Lang.current === 'es' ? 'negative limpiado' : 'negative cleared'));
+    },
+    who:   ()    => {
+      const u = sessionStorage.getItem('oca_user') || '?';
+      let tier = '?';
+      try {
+        const tok = sessionStorage.getItem('oca_token');
+        const p = tok && JSON.parse(atob(tok.split('.')[1]));
+        tier = p && (p.tier || p.scope) || '?';
+      } catch (_) {}
+      appendSystemMsg(`user: ${u}  ·  tier: ${tier}`);
+    },
+  };
+
+  function runCommand(text) {
+    const m = text.match(/^\/(\w+)\s*([\s\S]*)$/);
+    if (!m) return appendSystemMsg('?');
+    const [, cmd, arg] = m;
+    // Echo the user's command as a normal user message (gives chat history)
+    const div = document.createElement('div');
+    div.className = 'chat-msg user';
+    const tag = document.createElement('span');
+    tag.className = 'role-tag';
+    tag.textContent = 'user';
+    const body = document.createElement('span');
+    body.textContent = text;
+    div.appendChild(tag); div.appendChild(body);
+    elOutput.appendChild(div);
+    elOutput.scrollTop = elOutput.scrollHeight;
+
+    const handler = COMMANDS[cmd.toLowerCase()];
+    if (!handler) return appendSystemMsg(`/${cmd} — ` + (Lang.current === 'es' ? 'no existe (/help)' : 'unknown (/help)'));
+    handler(arg.trim());
+  }
+
   async function sendChat() {
     const text = elInput.value.trim();
-    if (!text || !elModel.value) return;
+    if (!text) return;
+    if (text.startsWith('/')) {
+      elInput.value = '';
+      elInput.style.height = 'auto';
+      return runCommand(text);
+    }
+    if (!elModel.value) return;
 
     const userTs = Date.now();
     history.push({ role: 'user', content: text });
