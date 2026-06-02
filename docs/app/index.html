@@ -21,22 +21,23 @@
      ──────────────────────────────────────────────────────────────────────── */
   :root {
     --font-mono: 'Courier New', Courier, monospace;
-    --accent:        #66ffcc;
-    --accent-dim:    rgba(102, 255, 204, 0.30);
-    --accent-glow:   rgba(102, 255, 204, 0.10);
-    --accent-faint:  rgba(102, 255, 204, 0.05);
-    --warn:          #ffaa00;
-    --crit:          #ff4466;
-    --crit-glow:     rgba(255, 68, 102, 0.10);
-    --info:          #88d8ff;
-    /* legacy aliases — preserved so inline / JS-emitted color references
-       (e.g. var(--accent-purple)) resolve to the new palette */
-    --accent-purple: var(--accent);
-    --accent-blue:   var(--info);
-    --accent-green:  var(--accent);
-    --accent-red:    var(--crit);
-    --accent-cyan:   var(--info);
-    --accent-orange: var(--warn);
+    /* Original aria palette — kept verbatim. */
+    --accent-purple: #9d00ff;
+    --accent-blue:   #2563eb;
+    --accent-green:  #10b981;
+    --accent-red:    #ff0066;
+    --accent-cyan:   #00d4ff;
+    --accent-orange: #ff6600;
+    /* Semantic tokens point INTO the palette (so structural rules read
+       cleanly while color identity stays the original purple-led mix). */
+    --accent:        var(--accent-purple);
+    --accent-dim:    rgba(157, 0, 255, 0.30);
+    --accent-glow:   rgba(157, 0, 255, 0.10);
+    --accent-faint:  rgba(157, 0, 255, 0.06);
+    --warn:          var(--accent-orange);
+    --crit:          var(--accent-red);
+    --crit-glow:     rgba(255, 0, 102, 0.10);
+    --info:          var(--accent-cyan);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -59,8 +60,8 @@
     --panel-2:   rgba(255,255,255,0.04);
     --txt-dim:   rgba(255,255,255,0.50);
     --txt-ghost: rgba(255,255,255,0.25);
-    --lattice:   rgba(102, 255, 204, 0.045);
-    --btn-fg:    #001a13;
+    --lattice:   rgba(255, 255, 255, 0.025);
+    --btn-fg:    #ffffff;
   }
   body.light {
     --b-dim:     rgba(0,0,0,0.07);
@@ -70,8 +71,8 @@
     --panel-2:   rgba(0,0,0,0.03);
     --txt-dim:   rgba(0,0,0,0.55);
     --txt-ghost: rgba(0,0,0,0.30);
-    --lattice:   rgba(0, 100, 80, 0.055);
-    --btn-fg:    #ffffff;
+    --lattice:   rgba(0, 0, 0, 0.035);
+    --btn-fg:    #000000;
   }
 
   /* Hex-lattice atmospheric background — fixed, masked at edges ───────────── */
@@ -179,27 +180,17 @@
   .header-right a:hover { color: var(--accent); border-bottom-color: var(--accent-dim); }
   #logout-link:hover { color: var(--crit); border-bottom-color: var(--crit); }
 
-  /* Main grid + mint gradient between panes ──────────────────────────────── */
+  /* Single-pane chat-primary surface — image work happens via slash commands,
+     not via a sticky image panel. The whole #image-pane element is hidden
+     by CSS (its JS still runs so the IDB recipes/probe/state cache work; the
+     /img command path reuses that). Mirrors alean's chat-only chassis. */
   main {
     display: grid;
-    grid-template-columns: 60fr 40fr;
+    grid-template-columns: 1fr;
     min-height: 0; overflow: hidden;
     position: relative;
   }
-  main::after {
-    content: '';
-    position: absolute;
-    top: 28px; bottom: 28px;
-    left: 60%;
-    width: 1px;
-    background: linear-gradient(to bottom,
-      transparent 0%,
-      var(--accent-dim) 18%,
-      var(--accent-dim) 82%,
-      transparent 100%);
-    pointer-events: none;
-    z-index: 2;
-  }
+  #image-pane { display: none !important; }
 
   /* Image pane ───────────────────────────────────────────────────────────── */
   #image-pane {
@@ -465,13 +456,25 @@
   .chat-msg.user {
     margin-left: auto;
     text-align: right;
-    color: var(--accent);
   }
-  .chat-msg.user .role-tag { color: var(--accent-dim); }
+  body.dark  .chat-msg.user           { color: var(--accent-cyan); }
+  body.light .chat-msg.user           { color: var(--accent-blue); }
+  body.dark  .chat-msg.user .role-tag { color: rgba(0, 212, 255, 0.45); }
+  body.light .chat-msg.user .role-tag { color: rgba(37, 99, 235, 0.45); }
+
   .chat-msg.assistant { color: inherit; }
   body.dark  .chat-msg.assistant { color: rgba(255,255,255,0.92); }
   body.light .chat-msg.assistant { color: rgba(0,0,0,0.92); }
-  .chat-msg.assistant .role-tag { color: var(--accent); letter-spacing: 4px; }
+  .chat-msg.assistant .role-tag { color: var(--accent-purple); letter-spacing: 4px; }
+
+  /* Inline image result (from /img command) — appears as an assistant msg */
+  .chat-msg .inline-img {
+    display: block;
+    max-width: 100%;
+    margin-top: 8px;
+    border: 1px solid var(--b-mid);
+  }
+  .chat-msg.assistant.img .role-tag { color: var(--accent-blue); }
   .chat-msg.system {
     color: var(--warn);
     font-size: 10px; opacity: 0.85;
