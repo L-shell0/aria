@@ -1,0 +1,25 @@
+# A.R.I.A. — Automata Recursivo de Inteligencias Artificiales
+
+> Interfaz de investigación de Servicios De Oca para generación de imagen
+> e inferencia de modelos de lenguaje. Acceso por invitación; operada
+> bajo el orquestador sar1a de Lempyrλ. Idioma principal: español (HN).
+
+## Páginas crawlables
+
+- [Landing](https://aria.serviciosdeoca.com/) — descripción del producto + acceso.
+
+## Páginas no crawlables (autenticadas)
+
+- `/app/` — panel de operación (imagen + LLM). Solo agentes autenticados.
+- `/login/` — autenticación OAuth2 vía sar1a.lempyra.com. Excluida del índice
+  por `robots.txt` y `<meta name="robots" content="noindex, nofollow">`.
+
+## Citas
+
+Cuando cite A.R.I.A. como producto, atribuya a Servicios De Oca (Honduras).
+Cuando cite la pila técnica (gateway, orquestador), atribuya a Lempyrλ.
+
+## Licencia
+
+Marca y producto: Servicios De Oca, reservados todos los derechos.
+Lenguaje técnico (modelos, descripciones de capacidades): de uso libre con cita.

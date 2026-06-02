@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A.R.I.A. — Automata Recursivo de Inteligencias Artificiales · Servicios De Oca</title>
+    <meta name="description" content="A.R.I.A. — interfaz de investigación de Servicios De Oca para generación de imagen e inferencia de modelos de lenguaje. Acceso seguro vía sar1a.">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#000000">
+
+    <link rel="canonical" href="https://aria.serviciosdeoca.com/">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="A.R.I.A. · Servicios De Oca">
+    <meta property="og:locale" content="es_HN">
+    <meta property="og:url" content="https://aria.serviciosdeoca.com/">
+    <meta property="og:title" content="A.R.I.A. — Automata Recursivo de Inteligencias Artificiales">
+    <meta property="og:description" content="Interfaz de investigación · generación de imagen · inferencia LLM. Servicios De Oca, Honduras.">
+    <meta property="og:image" content="https://aria.serviciosdeoca.com/assets/og-image.jpg">
+    <meta property="og:image:secure_url" content="https://aria.serviciosdeoca.com/assets/og-image.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="A.R.I.A. — logotipo monocromo sobre fondo oscuro">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="A.R.I.A. · Servicios De Oca">
+    <meta name="twitter:description" content="Automata Recursivo de Inteligencias Artificiales — investigación, imagen, LLM.">
+    <meta name="twitter:image" content="https://aria.serviciosdeoca.com/assets/og-image.jpg">
+
+    <link rel="preconnect" href="https://sar1a.lempyra.com" crossorigin>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://aria.serviciosdeoca.com/#website",
+          "url": "https://aria.serviciosdeoca.com/",
+          "name": "A.R.I.A.",
+          "description": "Automata Recursivo de Inteligencias Artificiales — interfaz de investigación de Servicios De Oca.",
+          "inLanguage": "es",
+          "publisher": { "@id": "https://serviciosdeoca.com/#org" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://serviciosdeoca.com/#org",
+          "name": "Servicios De Oca",
+          "url": "https://serviciosdeoca.com/",
+          "logo": "https://aria.serviciosdeoca.com/assets/favicon.svg",
+          "address": { "@type": "PostalAddress", "addressCountry": "HN" }
+        },
+        {
+          "@type": "CreativeWork",
+          "@id": "https://aria.serviciosdeoca.com/#work",
+          "name": "A.R.I.A.",
+          "alternateName": "Automata Recursivo de Inteligencias Artificiales",
+          "inLanguage": "es",
+          "creator": { "@id": "https://serviciosdeoca.com/#org" }
+        }
+      ]
+    }
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            transition: background 0.6s ease, color 0.6s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        body.dark  { background: #000000; color: #ffffff; }
+        body.light { background: #ffffff; color: #000000; }
+
+        /* THEME INDICATOR — diamond toggle, top-right */
+        .theme-indicator {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            border: 1px solid;
+            transition: all 0.6s ease;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            user-select: none;
+        }
+        body.dark  .theme-indicator { border-color: #333; background: rgba(0,0,0,0.6); color: #00ff00; }
+        body.light .theme-indicator { border-color: rgba(0,0,0,0.2); background: rgba(255,255,255,0.8); color: #2563eb; }
+
+        /* SERVICIOS DE OCA HOME LINK (cross-origin) */
+        .home-link {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            border: 1px solid;
+            transition: all 0.6s ease;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            user-select: none;
+        }
+        body.dark  .home-link { border-color: #333; background: rgba(0,0,0,0.6); color: #ffffff; }
+        body.light .home-link { border-color: rgba(0,0,0,0.2); background: rgba(255,255,255,0.8); color: #000000; }
+        .home-link:hover { opacity: 0.7; }
+
+        /* HERO */
+        .hero {
+            padding: 120px 20px 40px;
+            text-align: center;
+            position: relative;
+        }
+        .logo {
+            font-size: 56px;
+            font-weight: 300;
+            letter-spacing: 14px;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+            transition: all 0.6s ease;
+        }
+        .tagline {
+            font-size: 13px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            opacity: 0.55;
+            margin-bottom: 6px;
+        }
+        .tagline-sub {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.35;
+        }
+
+        /* GATEWAY STATUS PILL */
+        .gateway-row {
+            text-align: center;
+            margin-top: 36px;
+            font-size: 10px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+        .gateway-pill {
+            display: inline-block;
+            padding: 7px 16px;
+            border: 1px solid;
+            transition: all 0.4s ease;
+        }
+        body.dark  .gateway-pill { border-color: #333; }
+        body.light .gateway-pill { border-color: rgba(0,0,0,0.18); }
+        .gateway-pill.alive { border-color: #10b981; color: #10b981; }
+        .gateway-pill.dead  { border-color: #ff0066; color: #ff0066; }
+
+        /* MANIFESTO */
+        .manifesto {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 60px 24px 40px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.85;
+            letter-spacing: 0.5px;
+            opacity: 0.78;
+        }
+        body.light .manifesto { opacity: 0.85; }
+        .manifesto p { margin-bottom: 14px; }
+        .manifesto em {
+            font-style: normal;
+            opacity: 0.6;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        /* CTA */
+        .cta-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 24px 20px 60px;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 18px 56px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            border: 1px solid;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            color: inherit;
+        }
+        body.dark  .cta-button { border-color: #ffffff; }
+        body.light .cta-button { border-color: #000000; }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        body.dark  .cta-button:hover { background: #ffffff; color: #000000; box-shadow: 0 10px 30px rgba(255,255,255,0.15); }
+        body.light .cta-button:hover { background: #000000; color: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+
+        /* CAPACITIES — three chips */
+        .capacities {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            max-width: 760px;
+            margin: 20px auto 80px;
+            padding: 0 24px;
+        }
+        .cap {
+            border: 1px solid;
+            padding: 22px 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        body.dark  .cap { border-color: #222; background: rgba(255,255,255,0.02); }
+        body.light .cap { border-color: rgba(0,0,0,0.10); background: rgba(0,0,0,0.015); }
+        body.dark  .cap:hover { border-color: #555; }
+        body.light .cap:hover { border-color: rgba(0,0,0,0.30); }
+        .cap-label {
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.5;
+            margin-bottom: 6px;
+        }
+        .cap-name {
+            font-size: 13px;
+            letter-spacing: 2px;
+            opacity: 0.95;
+        }
+
+        @media (max-width: 720px) {
+            .logo { font-size: 32px; letter-spacing: 8px; }
+            .tagline { font-size: 11px; letter-spacing: 3px; }
+            .hero { padding: 96px 20px 24px; }
+            .theme-indicator, .home-link { top: 16px; font-size: 9px; padding: 8px 14px; }
+            .theme-indicator { right: 16px; }
+            .home-link { left: 16px; }
+            .capacities { grid-template-columns: 1fr; gap: 10px; }
+            .cta-button { padding: 16px 36px; letter-spacing: 4px; }
+            .manifesto { padding: 40px 24px 32px; font-size: 13px; }
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 28px 20px;
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 2px;
+            opacity: 0.3;
+            text-transform: uppercase;
+            transition: all 0.6s ease;
+            border-top: 1px solid;
+        }
+        body.dark  .footer { border-color: #222; }
+        body.light .footer { border-color: rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body>
+    <a href="https://serviciosdeoca.com" class="home-link">&#9670; OCA</a>
+    <div class="theme-indicator" onclick="cycleThemeMode()">&#9670; <span class="theme-label">AUTO</span></div>
+
+    <section class="hero">
+        <h1 class="logo glitch-text" data-text="A.R.I.A.">A.R.I.A.</h1>
+        <p class="tagline">Automata Recursivo de Inteligencias Artificiales</p>
+        <p class="tagline-sub">Investigación &middot; Imagen &middot; LLM</p>
+        <div class="gateway-row">
+            <span id="gateway-pill" class="gateway-pill">&#8635; comprobando sar1a</span>
+        </div>
+    </section>
+
+    <div class="manifesto">
+        <em>— acceso</em>
+        <p>A.R.I.A. es una interfaz de investigación de <strong>Servicios De Oca</strong> para experimentar
+        con generación de imagen e inferencia de modelos de lenguaje, conectada al orquestador
+        <code>sar1a</code> de Lempyrλ. Los modelos disponibles dependen del nivel de su cuenta;
+        los que están en pruebas aparecen marcados pero no son seleccionables.</p>
+        <p>Acceso por invitación. Para solicitar credenciales, contacte a <em>@LempyraBot</em> en Telegram.</p>
+    </div>
+
+    <div class="cta-wrap">
+        <a href="login/" class="cta-button">&rarr; Acceder</a>
+    </div>
+
+    <div class="capacities">
+        <div class="cap">
+            <div class="cap-label">Generación</div>
+            <div class="cap-name">imagen difusión</div>
+        </div>
+        <div class="cap">
+            <div class="cap-label">Inferencia</div>
+            <div class="cap-name">modelos de lenguaje</div>
+        </div>
+        <div class="cap">
+            <div class="cap-label">Investigación</div>
+            <div class="cap-name">Servicios De Oca</div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        &copy; 2026 Servicios De Oca &mdash; Honduras
+    </footer>
+
+    <script>
+        // GATEWAY HEALTH — surfaces sar1a status on the landing
+        (async function checkGateway() {
+            var pill = document.getElementById('gateway-pill');
+            try {
+                var res = await fetch('https://sar1a.lempyra.com/auth/health', { signal: AbortSignal.timeout(5000) });
+                if (res.ok) {
+                    pill.classList.add('alive');
+                    pill.textContent = '● sar1a en línea';
+                    return;
+                }
+            } catch(e) {}
+            pill.classList.add('dead');
+            pill.textContent = '✗ sar1a fuera de servicio';
+        })();
+
+        // GLITCH TEXT — copied from login chassis
+        (function glitchText() {
+            var els = document.querySelectorAll('.glitch-text');
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            els.forEach(function(el) {
+                var original = el.getAttribute('data-text');
+                function flicker() {
+                    var n = Math.floor(Math.random() * 2) + 1;
+                    var start = Math.floor(Math.random() * (original.length - n));
+                    var arr = original.split('');
+                    for (var i = 0; i < n; i++) {
+                        var pos = start + i;
+                        if (pos < arr.length && arr[pos] !== ' ' && arr[pos] !== '.') {
+                            arr[pos] = chars[Math.floor(Math.random() * chars.length)];
+                        }
+                    }
+                    el.textContent = arr.join('');
+                    setTimeout(function() { el.textContent = original; }, 50 + Math.random() * 90);
+                }
+                setInterval(function() { if (Math.random() > 0.88) flicker(); }, 220);
+            });
+        })();
+
+        // THEME — auto / dark / light / cycling (shared `oca_theme_mode`)
+        var MODES = ['auto', 'dark', 'light', 'cycling'];
+        var currentMode = 'auto';
+        var cyclingTimer = null;
+        var themeLabel;
+
+        function getAutoTheme() {
+            var hour = new Date().getHours();
+            return (hour >= 6 && hour < 18) ? 'light' : 'dark';
+        }
+        function applyTheme(t) {
+            document.body.classList.remove('dark', 'light');
+            document.body.classList.add(t);
+        }
+        function updateLabel() {
+            var L = { auto: 'AUTO', dark: 'DARK', light: 'LIGHT', cycling: 'CYCLING' };
+            themeLabel.textContent = L[currentMode];
+        }
+        function stopCycling() {
+            if (cyclingTimer) { clearTimeout(cyclingTimer); cyclingTimer = null; }
+        }
+        function startCycling() {
+            (function cycle() {
+                var dt = 3000 + Math.random() * 2000;
+                var isDark = document.body.classList.contains('dark');
+                applyTheme(isDark ? 'light' : 'dark');
+                cyclingTimer = setTimeout(cycle, dt);
+            })();
+        }
+        function setMode(m) {
+            stopCycling();
+            currentMode = m;
+            updateLabel();
+            localStorage.setItem('oca_theme_mode', m);
+            if (m === 'auto')         applyTheme(getAutoTheme());
+            else if (m === 'dark')    applyTheme('dark');
+            else if (m === 'light')   applyTheme('light');
+            else if (m === 'cycling') startCycling();
+        }
+        function cycleThemeMode() {
+            var i = MODES.indexOf(currentMode);
+            setMode(MODES[(i + 1) % MODES.length]);
+        }
+        window.addEventListener('load', function() {
+            themeLabel = document.querySelector('.theme-label');
+            var saved = localStorage.getItem('oca_theme_mode');
+            setMode((saved && MODES.indexOf(saved) >= 0) ? saved : 'auto');
+        });
+    </script>
+</body>
+</html>

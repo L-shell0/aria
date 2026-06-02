@@ -1,0 +1,11 @@
+# Local status / operational notes — kept out of the public repo
+STATUS.md
+*.local.md
+.env
+.env.*
+
+# og-image staging — sources stay local; final jpg lives at docs/assets/og-image.jpg
+og-image/
+
+# macOS noise
+.DS_Store
