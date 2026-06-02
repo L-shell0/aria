@@ -266,6 +266,37 @@
   }
   /* sar1a-only — host filter is redundant when there's only one host. */
   #chat-host-filter { display: none; }
+  /* Public aria — server picks model + image checkpoint. Hide the
+     user-facing selectors; alean keeps them (admin tier). */
+  #chat-model-select,
+  #chat-reload,
+  #img-model,
+  #img-reload,
+  .img-section.model-row { display: none !important; }
+
+  /* Server-picks status pill — replaces the chat-model-select */
+  .server-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent;
+    border: 1px solid var(--b-mid);
+    color: var(--txt-dim);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 5px 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .server-pill .server-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--txt-ghost);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .server-pill.alive .server-dot { background: var(--accent-green); }
+  .server-pill.dead  .server-dot { background: var(--accent-red); }
+  .server-pill .model-name { opacity: 0.65; letter-spacing: 0.5px; text-transform: none; }
   #chat-model-select {
     background: transparent;
     border: 1px solid var(--b-mid);
@@ -429,7 +460,7 @@
         &#9888; navegación privada detectada — las imágenes podrían no persistir.
       </div>
 
-      <div class="img-section">
+      <div class="img-section model-row">
         <div class="img-label">modelo · checkpoint</div>
         <div style="display:flex;gap:8px;">
           <select id="img-model" class="img-select" style="flex:1;min-width:0;"></select>
@@ -493,6 +524,11 @@
           <select id="chat-host-filter" title="filtro orquestador" style="flex:0 0 auto;"></select>
           <select id="chat-model-select" title="modelo" style="flex:1;min-width:0;"></select>
           <button id="chat-reload" class="reload-btn" type="button" title="recargar modelos">&#8635;</button>
+          <span id="server-pill" class="server-pill" title="modelo seleccionado por el servidor">
+            <span class="server-dot"></span>
+            <span data-i18n="chat.auto">SERVIDOR · AUTO</span>
+            <span class="model-name" id="server-pill-model"></span>
+          </span>
         </div>
       </div>
       <div id="chat-output"></div>
@@ -584,6 +620,14 @@ document.getElementById('logout-link').addEventListener('click', function (e) {
 const SAR1A_URL = 'https://sar1a.lempyra.com';
 const CLIENT_ID = 'portal';
 
+// ─── Server-picks-model policy ─────────────────────────────────────────────
+// Public aria does NOT let users select models. Server-side auto-selection
+// based on X-App-ID + tier + health is being wired in lunaOrchestrator
+// (see Ariandel 2026-06-02-orch-app-registry). Until that lands, hardcode
+// the public-tier defaults below; frontend dropdowns are CSS-hidden.
+const CHAT_MODEL_DEFAULT = 'qwen3.6-35b-heretic';
+const IMG_MODEL_DEFAULT  = 'gemini-2.5-flash-image';
+
 // ─── SFW model denylist ────────────────────────────────────────────────────
 // Public-tier aria.serviciosdeoca.com shows SFW models only. Hides obvious
 // NSFW name patterns from both chat /models and image /img/v1/models lists.
@@ -605,11 +649,13 @@ const I18N = {
     'header.home': 'inicio',
     'header.logout': 'salir',
     'header.subtitle': 'generación de imagen · inferencia llm · servicios de oca',
+    'chat.auto': 'SERVIDOR · AUTO',
   },
   en: {
     'header.home': 'home',
     'header.logout': 'logout',
     'header.subtitle': 'image generation · llm inference · servicios de oca',
+    'chat.auto': 'SERVER · AUTO',
   }
 };
 
@@ -862,8 +908,12 @@ setInterval(async () => {
     }
     renderStatusRow();
     rebuildModelDropdown();
+    // Public aria: auto-select default (or first available). Selector is CSS-hidden.
+    if (modelMap.has(IMG_MODEL_DEFAULT)) elModel.value = IMG_MODEL_DEFAULT;
+    else if (modelMap.size > 0)          elModel.value = [...modelMap.keys()][0];
+    updateLatencyWarning();
     if (activeHosts[0]) loadRecipes(activeHosts[0].host);
-    console.log(`[oca.img] mode=${mode} models=${modelMap.size}`);
+    console.log(`[oca.img] mode=${mode} models=${modelMap.size} selected=${elModel.value}`);
   }
 
   function hideEmptyIfNeeded() {
@@ -1420,6 +1470,8 @@ setInterval(async () => {
     modelMap.clear();
     perHost = {};
     const proxy = await fetchModelsFrom(PROXY_HOST);
+    const pill      = document.getElementById('server-pill');
+    const pillModel = document.getElementById('server-pill-model');
     if (proxy.ok) {
       perHost[PROXY_HOST.label] = new Set(proxy.ids);
       for (const id of proxy.ids) modelMap.set(id, PROXY_HOST);
@@ -1427,13 +1479,20 @@ setInterval(async () => {
       setBadge('online', `sar1a · ${modelMap.size}`);
       rebuildHostFilter();
       rebuildDropdown();
-      console.log(`[oca.chat] mode=via-sar1a models=${modelMap.size}`);
+      // Public aria: auto-select default (or first available). Selector is CSS-hidden.
+      if (modelMap.has(CHAT_MODEL_DEFAULT)) elModel.value = CHAT_MODEL_DEFAULT;
+      else if (modelMap.size > 0)          elModel.value = [...modelMap.keys()][0];
+      if (pill)      { pill.classList.add('alive'); pill.classList.remove('dead'); }
+      if (pillModel) pillModel.textContent = elModel.value || '';
+      console.log(`[oca.chat] mode=via-sar1a models=${modelMap.size} selected=${elModel.value}`);
       return true;
     }
     mode = 'offline';
     setBadge('offline', `offline · ${proxy.err || 'sar1a inalcanzable'}`);
     rebuildHostFilter();
     rebuildDropdown();
+    if (pill)      { pill.classList.add('dead'); pill.classList.remove('alive'); }
+    if (pillModel) pillModel.textContent = '';
     console.warn('[oca.chat] sar1a unreachable');
     return false;
   }
