@@ -402,14 +402,14 @@
         <span class="here">aria</span>
       </div>
       <div class="header-right">
-        <a href="https://serviciosdeoca.com">home</a>
-        <a href="#" id="logout-link">salir</a>
+        <a href="https://serviciosdeoca.com" data-i18n="header.home">home</a>
+        <a href="#" id="logout-link" data-i18n="header.logout">salir</a>
       </div>
     </div>
     <div class="header-row" style="align-items:flex-end;">
       <div>
         <div class="title">Aria</div>
-        <div class="subtitle">generación de imagen · inferencia llm · servicios de oca</div>
+        <div class="subtitle" data-i18n="header.subtitle">generación de imagen · inferencia llm · servicios de oca</div>
       </div>
     </div>
   </header>
@@ -584,6 +584,57 @@ document.getElementById('logout-link').addEventListener('click', function (e) {
 const SAR1A_URL = 'https://sar1a.lempyra.com';
 const CLIENT_ID = 'portal';
 
+// ─── SFW model denylist ────────────────────────────────────────────────────
+// Public-tier aria.serviciosdeoca.com shows SFW models only. Hides obvious
+// NSFW name patterns from both chat /models and image /img/v1/models lists.
+// Server-side tier_required attribute will replace this when sar1a ships it.
+const NSFW_NAMES = /\b(pony|nsfw|hentai|smut|porn|erotica|stheno|cydonia|mag-?mell)\b/i;
+
+// ─── Settings (persisted in localStorage, oca_* keys) ──────────────────────
+const Settings = {
+  get lang() {
+    const v = localStorage.getItem('oca_lang');
+    return (v === 'en' || v === 'es') ? v : 'es';
+  },
+  set lang(v) { if (v === 'en' || v === 'es') localStorage.setItem('oca_lang', v); }
+};
+
+// ─── I18N — string table (es primary, en alt) ─────────────────────────────
+const I18N = {
+  es: {
+    'header.home': 'inicio',
+    'header.logout': 'salir',
+    'header.subtitle': 'generación de imagen · inferencia llm · servicios de oca',
+  },
+  en: {
+    'header.home': 'home',
+    'header.logout': 'logout',
+    'header.subtitle': 'image generation · llm inference · servicios de oca',
+  }
+};
+
+// ─── Lang — applies the current language to all [data-i18n*] nodes ────────
+const Lang = {
+  current: 'es',
+  setLanguage(lang) {
+    if (lang !== 'es' && lang !== 'en') lang = 'es';
+    this.current = lang;
+    Settings.lang = lang;
+    document.documentElement.setAttribute('lang', lang);
+    const dict = I18N[lang] || I18N.es;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const v = dict[el.dataset.i18n];
+      if (v != null) el.textContent = v;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const v = dict[el.dataset.i18nPlaceholder];
+      if (v != null) el.placeholder = v;
+    });
+  },
+  toggle() { this.setLanguage(this.current === 'es' ? 'en' : 'es'); }
+};
+window.addEventListener('load', () => Lang.setLanguage(Settings.lang));
+
 async function refreshSession() {
   const refreshToken = sessionStorage.getItem('oca_refresh');
   if (!refreshToken) return false;
@@ -685,9 +736,7 @@ setInterval(async () => {
   }
   function normalizeCheckpoints(host, json) {
     const ids = host.kind === 'orch' ? (json.all || []) : (json.checkpoints || []);
-    // Cyber Pony is served by the orch but intentionally hidden from this
-    // site's picker. Match any Pony checkpoint, including future versions.
-    return ids.filter(id => !/pony/i.test(id));
+    return ids.filter(id => !NSFW_NAMES.test(id));
   }
 
   async function fetchWithRefresh(url, init, host) {
@@ -1311,7 +1360,7 @@ setInterval(async () => {
       });
       if (!res.ok) return { host, ok: false, err: `HTTP ${res.status}` };
       const data = await res.json();
-      const ids = (data.data || []).map(m => m.id);
+      const ids = (data.data || []).map(m => m.id).filter(id => !NSFW_NAMES.test(id));
       return { host, ok: true, ids };
     } catch (e) {
       return { host, ok: false, err: e.name === 'TimeoutError' ? 'timeout' : e.message };
