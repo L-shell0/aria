@@ -767,13 +767,23 @@ const CLIENT_ID = 'portal';
 // (see Ariandel 2026-06-02-orch-app-registry). Until that lands, hardcode
 // the public-tier defaults below; frontend dropdowns are CSS-hidden.
 const CHAT_MODEL_DEFAULT = 'qwen3.6-35b-heretic';
-const IMG_MODEL_DEFAULT  = 'gemini-2.5-flash-image';
+const IMG_MODEL_DEFAULT  = 'Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors';
 
 // ─── SFW model denylist ────────────────────────────────────────────────────
 // Public-tier aria.serviciosdeoca.com shows SFW models only. Hides obvious
 // NSFW name patterns from both chat /models and image /img/v1/models lists.
 // Server-side tier_required attribute will replace this when sar1a ships it.
 const NSFW_NAMES = /\b(pony|nsfw|hentai|smut|porn|erotica|stheno|cydonia|mag-?mell)\b/i;
+
+// ─── FREE-TIER MODEL POLICY (2026-06-02) ───────────────────────────────────
+// L's directive: public-tier users see ONLY the local-mesh 35B chat family
+// + Juggernaut SFW image (no NSFW lane, no paid-key models). All paid-API
+// models (Anthropic/OpenAI/Gemini/OpenRouter via the nagini mirror), admin-
+// tier 122B, dunk 4B/9B, and embedders are filtered out. Long-term replacement
+// = server-side per-X-App-ID model_pool routing from the orch app-registry
+// directive (T-2026-06-02-001). See [[project_free_tier_model_policy]].
+const FREE_TIER_CHAT    = /^qwen3\.6-35b-(heretic|heretic-slow|claude4\.7)$/;
+const FREE_TIER_IMG_SFW = /Juggernaut/i;
 
 // ─── Settings (persisted in localStorage, oca_* keys) ──────────────────────
 const Settings = {
@@ -925,7 +935,7 @@ setInterval(async () => {
   }
   function normalizeCheckpoints(host, json) {
     const ids = host.kind === 'orch' ? (json.all || []) : (json.checkpoints || []);
-    return ids.filter(id => !NSFW_NAMES.test(id));
+    return ids.filter(id => !NSFW_NAMES.test(id) && FREE_TIER_IMG_SFW.test(id));
   }
 
   async function fetchWithRefresh(url, init, host) {
@@ -1553,7 +1563,7 @@ setInterval(async () => {
       });
       if (!res.ok) return { host, ok: false, err: `HTTP ${res.status}` };
       const data = await res.json();
-      const ids = (data.data || []).map(m => m.id).filter(id => !NSFW_NAMES.test(id));
+      const ids = (data.data || []).map(m => m.id).filter(id => !NSFW_NAMES.test(id) && FREE_TIER_CHAT.test(id));
       return { host, ok: true, ids };
     } catch (e) {
       return { host, ok: false, err: e.name === 'TimeoutError' ? 'timeout' : e.message };
