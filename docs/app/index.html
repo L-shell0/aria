@@ -15,8 +15,8 @@
 <style>
   /* ────────────────────────────────────────────────────────────────────────
      A.R.I.A. · operator-console design system
-     Single mint accent (#66ffcc), hex lattice atmosphere, vessel-less chat,
-     bottom-border inputs, mint-outline action buttons, recursive sub-glyph.
+     Single mint accent (#66ffcc), blank background (awaiting direction),
+     vessel-less chat, bottom-border inputs, mint-outline action buttons.
      Light/dark/auto/cycling theme inherited from serviciosdeoca homepage.
      ──────────────────────────────────────────────────────────────────────── */
   :root {
@@ -60,7 +60,6 @@
     --panel-2:   rgba(255,255,255,0.04);
     --txt-dim:   rgba(255,255,255,0.50);
     --txt-ghost: rgba(255,255,255,0.25);
-    --lattice:   rgba(255, 255, 255, 0.025);
     --btn-fg:    #ffffff;
   }
   body.light {
@@ -71,22 +70,11 @@
     --panel-2:   rgba(0,0,0,0.03);
     --txt-dim:   rgba(0,0,0,0.55);
     --txt-ghost: rgba(0,0,0,0.30);
-    --lattice:   rgba(0, 0, 0, 0.035);
     --btn-fg:    #000000;
   }
 
-  /* Hex-lattice atmospheric background — fixed, masked at edges ───────────── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      repeating-linear-gradient(60deg, transparent 0 39px, var(--lattice) 39px 40px),
-      repeating-linear-gradient(-60deg, transparent 0 39px, var(--lattice) 39px 40px);
-    -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, #000 30%, transparent 100%);
-            mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, #000 30%, transparent 100%);
-  }
+  /* Background — left intentionally blank (2026-06-03). Previous hex-lattice
+     triangular pattern stripped per L; awaiting direction on the replacement. */
 
   /* Keyframes ─────────────────────────────────────────────────────────────── */
   @keyframes mint-pulse {
@@ -148,17 +136,7 @@
     line-height: 1;
     padding-left: 2px;
   }
-  /* Recursive sub-glyph after A.R.I.A. — three nested downward triangles */
-  .title::after {
-    content: '\25BD\25BD\25BD';
-    display: inline-block;
-    margin-left: 18px;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--accent);
-    transform: translateY(-7px);
-    animation: mint-breath 4.2s ease-in-out infinite;
-  }
+  /* Recursive ▽▽▽ glyph stripped 2026-06-03 — awaiting visual direction. */
   .subtitle {
     font-size: 10px; letter-spacing: 3px;
     color: var(--txt-dim); text-transform: lowercase;
